@@ -4,6 +4,7 @@ import isEmpty from "lodash/isEmpty";
 import merge from "lodash/merge";
 import {
   Account,
+  Address,
   FeeBumpTransaction,
   StrKey,
   Transaction,
@@ -133,7 +134,7 @@ export class Server {
    *
    * Allows you to directly inspect the current state of a contract. This is a backup way to access your contract data which may not be available via events or simulateTransaction.
    *
-   * @param {string} contractId - The contract ID containing the data to load. Encoded as a hex string.
+   * @param {string} contractId - The contract ID containing the data to load. Encoded as a hex string or Stellar Contract Address e.g. `CCJZ5DGASBWQXR5MPFCJXMBI333XE5U3FSJTNQU7RIKE3P5GN2K2WYD5`.
    * @param {xdr.ScVal} key - The key of the contract data to load.
    * @returns {Promise<SorobanRpc.GetLedgerEntryResponse>} Returns a promise to the {@link SorobanRpc.GetLedgerEntryResponse} object with the current value.
    */
@@ -141,12 +142,15 @@ export class Server {
     contractId: string,
     key: xdr.ScVal,
   ): Promise<SorobanRpc.GetLedgerEntryResponse> {
+    const buf = contractId.startsWith("C")
+      ? Address.fromString(contractId).toBuffer()
+      : Buffer.from(contractId, "hex");
     return await jsonrpc.post(
       this.serverURL.toString(),
       "getLedgerEntry",
       xdr.LedgerKey.contractData(
         new xdr.LedgerKeyContractData({
-          contractId: Buffer.from(contractId, "hex"),
+          contractId: buf,
           key,
         }),
       ).toXDR("base64"),
